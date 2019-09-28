@@ -15,7 +15,13 @@ module mojo_top (
     output io_seg [8],      // 7-segment LEDs on IO Shield
     output io_sel [4],      // Digit select on IO Shield
     input io_button [5],    // 5 buttons on IO Shield
-    input io_dip [3][8]     // DIP switches on IO Shield
+    input io_dip [3][8]    // DIP switches on IO Shield
+    
+    //output ci,
+    //output a,
+    //output b,
+    //input sum,
+    //input co
   ) {
   
   sig rst;                  // reset signal
@@ -24,7 +30,18 @@ module mojo_top (
     // The reset conditioner is used to synchronize the reset signal to the FPGA
     // clock. This ensures the entire FPGA comes out of reset at the same time.
     reset_conditioner reset_cond;
+    .rst(rst) {
+      tester_display display;
+      dff done;
+      dff failed;
+    }
   }
+  
+  counter test_value (#DIV(26), #SIZE(4), #TOP(8));
+  
+  sig a, b, ci, sum, co;
+  sig expected[2];
+  sig correct;
   
   always {
     reset_cond.in = ~rst_n; // input raw inverted reset signal
@@ -36,7 +53,44 @@ module mojo_top (
     avr_rx = bz;            // not using serial port
     
     io_led = 3x{{8h00}};    // turn LEDs off
-    io_seg = 8hff;          // turn segments off
-    io_sel = 4hf;           // select no digits
+    
+    // inits display
+    io_seg = display.seg;
+    io_sel = display.sel;
+    
+    // inits test value
+    test_value.rst = rst;
+    test_value.clk = clk & ~failed.q;  // pause when test failed
+    
+    // output test value to a, b, ci
+    ci = test_value.value[2];
+    a = test_value.value[1];
+    b = test_value.value[0];
+    // show current ci, a, b using right led panel
+    io_led[2][2:0] = test_value.value[2:0];
+    // expected value from full adder
+    expected = test_value.value[0] + test_value.value[1] + test_value.value[2];
+    
+    case (expected) {
+      0: co=0; sum=0;
+      1: co=0; sum=1;
+      2: co=1; sum=0;
+      3: co=1; sum=1;
+      default: co=0; sum=0;
+    }
+    // show external full adder's result using middle led panel
+    io_led[1][1] = co;
+    io_led[1][0] = sum;
+    
+    // compare result
+    correct = (expected[0] == sum) & (expected[1] == co);
+    
+    // record current state
+    done.d = done.q | test_value.value[3] | failed.q;  // done is true once test_value > 0b111(so it finished one loop)
+    failed.d = failed.q | ~correct;  // failed is true once one test failed
+    
+    // show on display
+    display.ready = done.q;
+    display.passed = ~failed.q;
   }
 }

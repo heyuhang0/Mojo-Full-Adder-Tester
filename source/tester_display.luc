@@ -1,0 +1,93 @@
+module tester_display (
+    input clk,  // clock
+    input rst,  // reset
+    input ready,
+    input passed,
+    output seg [8],      // LED segments
+    output sel [4]       // Digit select
+  ) {
+
+  .clk(clk), .rst(rst) {
+    counter ctr (#DIV(16), #SIZE(2), #TOP(3));
+    counter timer (#DIV(22), #SIZE(3), #TOP(5));
+  }
+  
+  decoder digit_dec (#WIDTH(2)); // digit decoder
+  
+  sig display_buffer[4][8];
+  
+  always {
+    display_buffer = {8b0, 8b0, 8b0, 8b0};
+    if (ready) {
+      if (passed) {
+        // 'PASS'
+        display_buffer = {
+          //76543210
+          8b01110011,
+          8b01110111,
+          8b01101101,
+          8b01101101
+        };
+      } else {
+        // 'FAIL'
+        display_buffer = {
+          //76543210
+          8b01110001,
+          8b01110111,
+          8b00110000,
+          8b00111000
+        };
+      }
+    } else {
+      case (timer.value) {
+        0: display_buffer = {
+          //76543210
+          8b00111000,
+          8b00000000,
+          8b00000000,
+          8b00000111
+        };
+        1: display_buffer = {
+          //76543210
+          8b00011000,
+          8b00001000,
+          8b00000001,
+          8b00000011
+        };
+        2: display_buffer = {
+          //76543210
+          8b00001000,
+          8b00001001,
+          8b00001001,
+          8b00000001
+        };
+        3: display_buffer = {
+          //76543210
+          8b00000001,
+          8b00001001,
+          8b00001001,
+          8b00001000
+        };
+        4: display_buffer = {
+          //76543210
+          8b00100001,
+          8b00000001,
+          8b00001000,
+          8b00001100
+        };
+        5: display_buffer = {
+          //76543210
+          8b00110001,
+          8b00000000,
+          8b00000000,
+          8b00001110
+        };
+      }
+    }
+    
+    seg = ~display_buffer[~ctr.value];
+    
+    digit_dec.in = ~ctr.value;             // decode active digit to one-hot
+    sel = ~digit_dec.out;                  // output the active digit
+  }
+}
