@@ -3,7 +3,6 @@
   <files>
     <src>tester_display.luc</src>
     <src top="true">mojo_top.luc</src>
-    <ucf>adder_io.ucf</ucf>
     <ucf lib="true">io_shield.ucf</ucf>
     <ucf lib="true">mojo.ucf</ucf>
     <component>decoder.luc</component>

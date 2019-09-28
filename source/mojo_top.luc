@@ -15,13 +15,7 @@ module mojo_top (
     output io_seg [8],      // 7-segment LEDs on IO Shield
     output io_sel [4],      // Digit select on IO Shield
     input io_button [5],    // 5 buttons on IO Shield
-    input io_dip [3][8]    // DIP switches on IO Shield
-    
-    //output ci,
-    //output a,
-    //output b,
-    //input sum,
-    //input co
+    input io_dip [3][8]     // DIP switches on IO Shield
   ) {
   
   sig rst;                  // reset signal
@@ -37,10 +31,17 @@ module mojo_top (
     }
   }
   
-  counter test_value (#DIV(26), #SIZE(4), #TOP(8));
+  // Test data generator
+  // 6bit: DONE|CI|A|B|C|internal_time
+  counter test_gen (#DIV(26), #SIZE(6));
+  sig test_done, test_value[3], test_timing[2];
   
-  sig a, b, ci, sum, co;
+  // IO for adder, used as alias of io_led and io_dip
+  sig ci, a, b; //P17, P16, P15
+  sig co, sum;  //P121, P120
+  
   sig expected[2];
+  sig checking;
   sig correct;
   
   always {
@@ -48,6 +49,7 @@ module mojo_top (
     rst = reset_cond.out;   // conditioned reset
     
     led = 8h00;             // turn LEDs off
+    
     spi_miso = bz;          // not using SPI
     spi_channel = bzzzz;    // not using flags
     avr_rx = bz;            // not using serial port
@@ -59,35 +61,36 @@ module mojo_top (
     io_sel = display.sel;
     
     // inits test value
-    test_value.rst = rst;
-    test_value.clk = clk & ~failed.q;  // pause when test failed
+    test_gen.rst = rst;
+    test_gen.clk = clk & ~done.q ;  // pause when test finished
+    test_done = test_gen.value[5];
+    test_value = test_gen.value[4:2];
+    test_timing = test_gen.value[1:0];
     
     // output test value to a, b, ci
-    ci = test_value.value[2];
-    a = test_value.value[1];
-    b = test_value.value[0];
-    // show current ci, a, b using right led panel
-    io_led[2][2:0] = test_value.value[2:0];
+    ci = test_value[2];
+    a = test_value[1];
+    b = test_value[0];
+    // alias adder output
+    io_led[2][2:0] = c{ci, a, b};
     // expected value from full adder
-    expected = test_value.value[0] + test_value.value[1] + test_value.value[2];
+    expected = a + b + ci;
     
-    case (expected) {
-      0: co=0; sum=0;
-      1: co=0; sum=1;
-      2: co=1; sum=0;
-      3: co=1; sum=1;
-      default: co=0; sum=0;
-    }
-    // show external full adder's result using middle led panel
-    io_led[1][1] = co;
-    io_led[1][0] = sum;
+    // read adder result
+    co = io_dip[0][1];
+    sum = io_dip[0][0];
+    // show adder result using middle led panel
+    io_led[1][1:0] = c{co, sum};
     
     // compare result
-    correct = (expected[0] == sum) & (expected[1] == co);
+    // only check when internal timing is b10, so adder has time to prepare result
+    checking = test_timing == 2b10;
+    io_led[0] = 8x{checking};
+    correct = (expected[0] == sum) & (expected[1] == co) | ~checking;
     
-    // record current state
-    done.d = done.q | test_value.value[3] | failed.q;  // done is true once test_value > 0b111(so it finished one loop)
-    failed.d = failed.q | ~correct;  // failed is true once one test failed
+    // update states
+    done.d = done.q | test_done | failed.q;
+    failed.d = failed.q | ~correct;
     
     // show on display
     display.ready = done.q;
