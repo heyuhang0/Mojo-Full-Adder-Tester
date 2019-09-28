@@ -1,8 +1,0 @@
-INTSTYLE=pa
-INFILE=D:\OneDrive - Singapore University of Technology and Design\Term4\50.002  Computation Structures\MiniHardwareProject\Full Adder Tester\work\planAhead\Full Adder Tester\Full Adder Tester.runs\impl_1\mojo_top_0_routed.ncd
-OUTFILE=D:\OneDrive - Singapore University of Technology and Design\Term4\50.002  Computation Structures\MiniHardwareProject\Full Adder Tester\work\planAhead\Full Adder Tester\Full Adder Tester.runs\impl_1\mojo_top_0.bit
-FAMILY=Spartan6
-PART=xc6slx9-2tqg144
-WORKINGDIR=D:\OneDrive - Singapore University of Technology and Design\Term4\50.002  Computation Structures\MiniHardwareProject\Full Adder Tester\work\planAhead\Full Adder Tester\Full Adder Tester.runs\impl_1
-LICENSE=WebPack
-USER_INFO=211803132_0_0_700
