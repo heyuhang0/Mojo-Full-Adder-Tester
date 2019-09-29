@@ -85,7 +85,6 @@ module mojo_top (
     // compare result
     // only check when internal timing is b10, so adder has time to prepare result
     checking = test_timing == 2b10;
-    io_led[0] = 8x{checking};
     correct = (expected == c{co, sum}) | ~checking;
     
     // update states
@@ -95,5 +94,6 @@ module mojo_top (
     // show on display
     display.ready = done.q;
     display.passed = ~failed.q;
+    display.checking = checking;
   }
 }

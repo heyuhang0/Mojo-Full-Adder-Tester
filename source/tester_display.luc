@@ -3,6 +3,7 @@ module tester_display (
     input rst,  // reset
     input ready,
     input passed,
+    input checking,
     output seg [8],      // LED segments
     output sel [4]       // Digit select
   ) {
@@ -86,6 +87,13 @@ module tester_display (
     }
     
     seg = ~display_buffer[~ctr.value];
+    
+    // show checking dot in the middle
+    if (~ready & checking & (ctr.value == 1 | ctr.value == 2)) {
+      seg = ~(display_buffer[~ctr.value] | 8b01000000);
+    } else {
+      seg = ~display_buffer[~ctr.value];
+    }
     
     digit_dec.in = ~ctr.value;             // decode active digit to one-hot
     sel = ~digit_dec.out;                  // output the active digit
