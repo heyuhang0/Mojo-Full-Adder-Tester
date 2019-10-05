@@ -1,0 +1,13 @@
+module tester (
+    input inputs[3],
+    input outputs[2],
+    output correct
+  ) {
+  
+  sig expected[2];
+  
+  always {
+    expected = inputs[2] + inputs[1] + inputs[0];
+    correct = expected == outputs;
+  }
+}

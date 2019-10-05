@@ -20,29 +20,23 @@ module mojo_top (
   
   sig rst;                  // reset signal
   
+  sig end_test, adder_inputs[3], do_test;
+  sig adder_outputs[2];
+  
   .clk(clk) {
     // The reset conditioner is used to synchronize the reset signal to the FPGA
     // clock. This ensures the entire FPGA comes out of reset at the same time.
     reset_conditioner reset_cond;
     .rst(rst) {
+      tester_ctr tester;
       tester_display display;
-      dff done;
-      dff failed;
     }
   }
   
+  sig auto_test;
   // Test data generator
   // 6bit: DONE|CI|A|B|C|internal_time
-  counter test_gen (#DIV(26), #SIZE(6));
-  sig test_done, test_value[3], test_timing[2];
-  
-  // IO for adder, used as alias of io_led and io_dip
-  sig ci, a, b; //P17, P16, P15
-  sig co, sum;  //P121, P120
-  
-  sig expected[2];
-  sig checking;
-  sig correct;
+  counter test_gen (#DIV(25), #SIZE(6));
   
   always {
     reset_cond.in = ~rst_n; // input raw inverted reset signal
@@ -56,44 +50,44 @@ module mojo_top (
     
     io_led = 3x{{8h00}};    // turn LEDs off
     
-    // inits display
-    io_seg = display.seg;
-    io_sel = display.sel;
+    // auto/manual switch
+    auto_test = io_dip[0][0];
     
-    // inits test value
+    // auto test
     test_gen.rst = rst;
-    test_gen.clk = clk & ~done.q ;  // pause when test finished
-    test_done = test_gen.value[5];
-    test_value = test_gen.value[4:2];
-    test_timing = test_gen.value[1:0];
+    test_gen.clk = clk & ~tester.result_ready ;  // pause when test finished
+    if (auto_test) {
+      end_test = test_gen.value[5];
+      adder_inputs = test_gen.value[4:2];
+      do_test = (test_gen.value[1:0] == 2b10);
+    }
+    // manual test
+    else {
+      end_test = io_button[0];  // press UP button to sotp test
+      adder_inputs = io_dip[2][2:0]; // 
+      do_test = io_button[1];   // press CENTER button to test
+    }
+    io_led[2][2:0] = adder_inputs;
+    
+    // read adder's output
+    adder_outputs = io_dip[1][1:0];
+    io_led[1][1:0] = adder_outputs;
+    
     
     // output test value to a, b, ci
-    ci = test_value[2];
-    a = test_value[1];
-    b = test_value[0];
-    // alias adder output
-    io_led[2][2:0] = c{ci, a, b};
-    // expected value from full adder
-    expected = a + b + ci;
-    
-    // read adder result
-    co = io_dip[0][1];
-    sum = io_dip[0][0];
-    // show adder result using middle led panel
-    io_led[1][1:0] = c{co, sum};
-    
-    // compare result
-    // only check when internal timing is b10, so adder has time to prepare result
-    checking = test_timing == 2b10;
-    correct = (expected == c{co, sum}) | ~checking;
-    
-    // update states
-    done.d = done.q | test_done | failed.q;
-    failed.d = failed.q | ~correct;
+    tester.adder_inputs = adder_inputs;
+    tester.adder_outputs = adder_outputs;
+    tester.end_test = end_test;
+    tester.do_test = do_test;
+
+    // show current result
+    io_led[0] = 8x{tester.result};
     
     // show on display
-    display.ready = done.q;
-    display.passed = ~failed.q;
-    display.checking = checking;
+    display.ready = tester.result_ready;
+    display.passed = tester.result;
+    display.checking = do_test;
+    io_seg = display.seg;
+    io_sel = display.sel;
   }
 }

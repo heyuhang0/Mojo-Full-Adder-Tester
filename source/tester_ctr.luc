@@ -1,0 +1,28 @@
+module tester_ctr (
+    input clk,  // clock
+    input rst,  // reset
+    input adder_inputs[3],
+    input adder_outputs[2],
+    input do_test,
+    input end_test,
+    output result_ready,
+    output result
+  ) {
+  
+  tester tester(.inputs(adder_inputs), .outputs(adder_outputs));
+  
+  .clk(clk) {
+    .rst(rst) {
+      dff done;
+      dff failed;
+    }
+  }
+  
+  always {
+    failed.d = failed.q | (~tester.correct & do_test);
+    done.d = done.q | end_test | failed.q;
+    
+    result_ready = done.q;
+    result = ~failed.q;
+  }
+}
