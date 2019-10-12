@@ -57,8 +57,12 @@ module mojo_top (
     test_gen.rst = rst;
     test_gen.clk = clk & ~tester.result_ready ;  // pause when test finished
     if (auto_test) {
+      // end_test will halt the counter clock and outut result
       end_test = test_gen.value[5];
+      // use 2-4 as inputs for adder
       adder_inputs = test_gen.value[4:2];
+      // only do test when the last 2 digits is 2b10
+      // so there is time for external adder to be ready(>Tpd)
       do_test = (test_gen.value[1:0] == 2b10);
     }
     // manual test
@@ -67,14 +71,16 @@ module mojo_top (
       adder_inputs = io_dip[2][2:0]; // 
       do_test = io_button[1];   // press CENTER button to test
     }
+    // show adder's input using left leds
     io_led[2][2:0] = adder_inputs;
     
     // read adder's output
     adder_outputs = io_dip[1][1:0];
+    // show adder's output using middle leds
     io_led[1][1:0] = adder_outputs;
     
     
-    // output test value to a, b, ci
+    // connect tester controller
     tester.adder_inputs = adder_inputs;
     tester.adder_outputs = adder_outputs;
     tester.end_test = end_test;

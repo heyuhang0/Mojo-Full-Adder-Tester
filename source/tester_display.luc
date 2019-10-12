@@ -15,7 +15,7 @@ module tester_display (
   
   decoder digit_dec (#WIDTH(2)); // digit decoder
   
-  sig display_buffer[4][8];
+  sig display_buffer[4][8]; // content to be displayed
   
   always {
     display_buffer = {8b0, 8b0, 8b0, 8b0};
@@ -40,6 +40,8 @@ module tester_display (
         };
       }
     } else {
+      // testing animation
+      // two bars rotate
       case (timer.value) {
         0: display_buffer = {
           //76543210
@@ -86,13 +88,12 @@ module tester_display (
       }
     }
     
+    // get the value for one 7-segment display based on clock
     seg = ~display_buffer[~ctr.value];
     
-    // show checking dot in the middle
+    // show dot in the middle when the tester is checking result
     if (~ready & checking & (ctr.value == 1 | ctr.value == 2)) {
       seg = ~(display_buffer[~ctr.value] | 8b01000000);
-    } else {
-      seg = ~display_buffer[~ctr.value];
     }
     
     digit_dec.in = ~ctr.value;             // decode active digit to one-hot

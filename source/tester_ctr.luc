@@ -1,25 +1,33 @@
+// tester controller
 module tester_ctr (
     input clk,  // clock
     input rst,  // reset
-    input adder_inputs[3],
-    input adder_outputs[2],
-    input do_test,
-    input end_test,
-    output result_ready,
-    output result
+    input adder_inputs[3],  // {a, b, ci} test case for adder
+    input adder_outputs[2], // {co, sum} adder's output
+    input do_test,  // whether to enable test
+    input end_test, // whether to end test
+    output result_ready, // if the test result is ready
+    output result        // result of the test, 1 for passed, 0 for failed
   ) {
   
   tester tester(.inputs(adder_inputs), .outputs(adder_outputs));
   
   .clk(clk) {
     .rst(rst) {
-      dff done;
-      dff failed;
+      dff done;   // if the test ended
+      dff failed; // if the test failed
     }
   }
   
   always {
+    // fialed is true when:
+    // test already failed
+    // one test case failed and test is enabled
     failed.d = failed.q | (~tester.correct & do_test);
+    // done is true when:
+    // it is already done
+    // end_test signal is triggered(when counter overflows)
+    // test already failed
     done.d = done.q | end_test | failed.q;
     
     result_ready = done.q;

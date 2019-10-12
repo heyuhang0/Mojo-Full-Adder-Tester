@@ -1,10 +1,12 @@
+// takes in adder's inputs and outputs
+// determine if the adder's output is correct
 module tester (
-    input inputs[3],
-    input outputs[2],
-    output correct
+    input inputs[3],  // {a, b, ci}
+    input outputs[2], // {co, sum}
+    output correct    // 1 when correct
   ) {
   
-  sig expected[2];
+  sig expected[2];  // reference result from internal adder circuit
   
   always {
     expected = inputs[2] + inputs[1] + inputs[0];
